@@ -138,6 +138,7 @@ pub enum BodyContentType {
     Json,
     FormUrlencoded,
     Text(String),
+    FormData,
 }
 
 impl FromStr for BodyContentType {
@@ -152,6 +153,7 @@ impl FromStr for BodyContentType {
             "text/plain" | "text/x-markdown" => {
                 Ok(Self::Text(String::from(&s[..offset])))
             }
+            "multipart/form-data" => Ok(Self::FormData),
             _ => Err(Error::UnexpectedFormat(format!(
                 "unexpected content type: {}",
                 s
@@ -167,6 +169,7 @@ impl std::fmt::Display for BodyContentType {
             Self::Json => "application/json",
             Self::FormUrlencoded => "application/x-www-form-urlencoded",
             Self::Text(typ) => typ,
+            Self::FormData => "multipart/form-data",
         })
     }
 }
@@ -994,6 +997,23 @@ impl Generator {
                     // returns an error in the case of a serialization failure.
                     .form_urlencoded(&body)?
                 }),
+                (
+                    OperationParameterKind::Body(
+                        BodyContentType::FormData
+                    ),
+                    OperationParameterType::Type(typ),
+                ) => {
+                    let params = &method.params.iter().filter_map(|param| match &param.kind{
+                        OperationParameterKind::Body(typ1) => { Some((typ, typ1))},
+                        _ => None,
+                    } ).collect::<Vec<_>>();
+                    // todo: somehow get hold of form schema and pass that
+                    // todo: in this, recognize binary format of string and
+                    //  interpret them as files respectively reqwest::multipart::Part::stream
+                    dbg!(params);
+                    Some(quote! {
+                    .form_multipart(&body)?
+                })},
                 (OperationParameterKind::Body(_), _) => {
                     unreachable!("invalid body kind/type combination")
                 }
@@ -2220,7 +2240,9 @@ impl Generator {
                 }?;
                 OperationParameterType::RawBody
             }
-            BodyContentType::Json | BodyContentType::FormUrlencoded => {
+            BodyContentType::Json
+            | BodyContentType::FormUrlencoded
+            | BodyContentType::FormData => {
                 // TODO it would be legal to have the encoding field set for
                 // application/x-www-form-urlencoded content, but I'm not sure
                 // how to interpret the values.
