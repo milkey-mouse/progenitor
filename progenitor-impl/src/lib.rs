@@ -559,6 +559,7 @@ impl Generator {
                     HeaderValue,
                     RequestBuilderExt,
                     ResponseValue,
+                    Part,
                 };
 
                 #(#builder_struct)*
