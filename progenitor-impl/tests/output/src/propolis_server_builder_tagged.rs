@@ -2948,7 +2948,8 @@ pub mod builder {
     use super::types;
     #[allow(unused_imports)]
     use super::{
-        encode_path, ByteStream, Error, HeaderMap, HeaderValue, RequestBuilderExt, ResponseValue,
+        encode_path, ByteStream, Error, HeaderMap, HeaderValue, Part, RequestBuilderExt,
+        ResponseValue,
     };
     ///Builder for [`Client::instance_get`]
     ///
