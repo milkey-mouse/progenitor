@@ -182,6 +182,19 @@ impl Generator {
                         },
                         _ => unreachable!(),
                     },
+                    OperationParameterType::FormPart => match kind {
+                        OperationParameterKind::Body(
+                            BodyContentType::FormData(required),
+                        ) => {
+                            // todo: how to mock?
+                            if *required {
+                                quote! { Part }
+                            } else {
+                                quote! { Option<Part> }
+                            }
+                        }
+                        _ => unreachable!(),
+                    },
                 };
 
                 let name_ident = format_ident!("{}", name);
@@ -259,6 +272,10 @@ impl Generator {
                                     },
                                     _ => unreachable!(),
                                 }
+                            }
+                            OperationParameterType::FormPart => {
+                                // todo: what does it do?
+                                quote! { self.0 }
                             }
                         }
                     }
