@@ -4,6 +4,8 @@ use progenitor_client::{encode_path, RequestBuilderExt};
 pub use progenitor_client::{ByteStream, Error, ResponseValue};
 #[allow(unused_imports)]
 use reqwest::header::{HeaderMap, HeaderValue};
+#[allow(unused_imports)]
+use reqwest::multipart::Part;
 /// Types used as operation parameters and responses.
 #[allow(clippy::all)]
 pub mod types {
