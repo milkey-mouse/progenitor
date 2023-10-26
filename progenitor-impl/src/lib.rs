@@ -51,6 +51,7 @@ pub struct Generator {
     settings: GenerationSettings,
     uses_futures: bool,
     uses_websockets: bool,
+    uses_serde_json: bool,
 }
 
 /// Settings for [Generator].
@@ -248,6 +249,7 @@ impl Default for Generator {
             settings: Default::default(),
             uses_futures: Default::default(),
             uses_websockets: Default::default(),
+            uses_serde_json: Default::default(),
         }
     }
 }
@@ -289,6 +291,7 @@ impl Generator {
             settings: settings.clone(),
             uses_futures: false,
             uses_websockets: false,
+            uses_serde_json: false,
         }
     }
 
@@ -637,6 +640,10 @@ impl Generator {
     /// Whether the generated client needs to use additional crates to support websockets.
     pub fn uses_websockets(&self) -> bool {
         self.uses_websockets
+    }
+
+    pub fn uses_serde_json(&self) -> bool {
+        self.uses_serde_json
     }
 }
 
