@@ -22,6 +22,7 @@ struct CliOperation {
     cli_fn: TokenStream,
     execute_fn: TokenStream,
     execute_trait: TokenStream,
+    uses_request_file_part: bool,
 }
 
 impl Generator {
@@ -101,6 +102,24 @@ impl Generator {
             })
             .collect::<Vec<_>>();
 
+        let request_file = methods.iter().any(|method|method.uses_request_file_part).then(|| {
+            quote! {
+                fn request_file_part(path: &std::path::PathBuf) -> reqwest::multipart::Part {
+                    use std::io::Read;
+                    let mut file = std::fs::File::open(&path).unwrap();
+                    let mut value = Vec::new();
+                    file.read_to_end(&mut value).unwrap();
+                    // TODO: probably try setting mime type with mime_guess
+                    let part = reqwest::multipart::Part::bytes(value);
+                    if let Some(file_name) = path.file_name() {
+                        part.file_name(file_name.to_string_lossy().into_owned())
+                    } else {
+                        part
+                    }
+                }
+            }
+        });
+
         let crate_path = syn::TypePath {
             qself: None,
             path: syn::parse_str(crate_name).unwrap(),
@@ -108,6 +127,8 @@ impl Generator {
 
         let code = quote! {
             use #crate_path::*;
+
+            #request_file
 
             pub struct Cli<T: CliConfig> {
                 client: Client,
@@ -200,6 +221,7 @@ impl Generator {
         let CliArg {
             parser: parser_args,
             consumer: consumer_args,
+            uses_request_file_part,
         } = self.cli_method_args(method);
 
         let about = method.summary.as_ref().map(|summary| {
@@ -373,6 +395,7 @@ impl Generator {
             cli_fn,
             execute_fn,
             execute_trait,
+            uses_request_file_part,
         }
     }
 
@@ -448,7 +471,7 @@ impl Generator {
                 }
             };
 
-            args.add_arg(arg_name, CliArg { parser, consumer })
+            args.add_arg(arg_name, CliArg::new(parser, consumer))
         }
 
         // args that destructure a structured body
@@ -524,19 +547,12 @@ impl Generator {
                     quote ! { Some(part) }
                 };
                 let consumer = quote! {
-                    if let Some(file_name) = matches.get_one::<std::path::PathBuf>(#arg_name) {
-                        use std::io::Read;
-                        let mut file = std::fs::File::open(&file_name).unwrap();
-                        let mut value = Vec::new();
-                        file.read_to_end(&mut value).unwrap();
-                        // todo: here we can construct a (tokio) stream for
-                        // large files, set mime types etc.
-                        let part = reqwest::multipart::Part::bytes(value);
+                    if let Some(path) = matches.get_one::<std::path::PathBuf>(#arg_name) {
+                        let part = request_file_part(path);
                         request = request.#request_field(#part);
                     }
-
                 };
-                (param.api_name.clone(), CliArg { parser, consumer })
+                (param.api_name.clone(), CliArg { parser, consumer, uses_request_file_part: true })
             });
         args.args.extend(body_file_args);
 
@@ -607,7 +623,14 @@ impl Generator {
             #body_json_consumer
         };
 
-        CliArg { parser, consumer }
+        CliArg {
+            parser,
+            consumer,
+            uses_request_file_part: args
+                .args
+                .values()
+                .any(|arg| arg.uses_request_file_part),
+        }
     }
 
     fn cli_method_body_arg(
@@ -680,7 +703,7 @@ impl Generator {
                     })
                 }
             };
-            args.add_arg(prop_name, CliArg { parser, consumer })
+            args.add_arg(prop_name, CliArg::new(parser, consumer))
         } else if required {
             args.body_required()
         }
@@ -784,6 +807,19 @@ struct CliArg {
 
     /// Code to consume the argument
     consumer: TokenStream,
+
+    /// Whether request_file_part is used to consume the argument
+    uses_request_file_part: bool,
+}
+
+impl CliArg {
+    fn new(parser: TokenStream, consumer: TokenStream) -> Self {
+        Self {
+            parser,
+            consumer,
+            uses_request_file_part: false,
+        }
+    }
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
