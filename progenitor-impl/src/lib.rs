@@ -51,7 +51,7 @@ pub struct Generator {
     settings: GenerationSettings,
     uses_futures: bool,
     uses_websockets: bool,
-    uses_serde_json: bool,
+    uses_form_parts: bool,
 }
 
 /// Settings for [Generator].
@@ -240,7 +240,7 @@ impl Default for Generator {
             settings: Default::default(),
             uses_futures: Default::default(),
             uses_websockets: Default::default(),
-            uses_serde_json: Default::default(),
+            uses_form_parts: Default::default(),
         }
     }
 }
@@ -282,7 +282,7 @@ impl Generator {
             settings: settings.clone(),
             uses_futures: false,
             uses_websockets: false,
-            uses_serde_json: false,
+            uses_form_parts: false,
         }
     }
 
@@ -390,6 +390,14 @@ impl Generator {
         };
 
         let version_str = &spec.info.version;
+        let (to_form_string, pub_part) = if self.uses_form_parts {
+            (
+                Some(quote! { ,to_form_string }),
+                Some(quote! {pub use reqwest::multipart::Part; }),
+            )
+        } else {
+            (None, None)
+        };
 
         // The allow(unused_imports) on the `pub use` is necessary with Rust 1.76+, in case the
         // generated file is not at the top level of the crate.
@@ -400,11 +408,10 @@ impl Generator {
             #[allow(unused_imports)]
             pub use progenitor_client::{ByteStream, Error, ResponseValue};
             #[allow(unused_imports)]
-            use progenitor_client::{encode_path, to_form_string, RequestBuilderExt};
+            use progenitor_client::{encode_path, RequestBuilderExt #to_form_string };
             #[allow(unused_imports)]
             use reqwest::header::{HeaderMap, HeaderValue};
-            #[allow(unused_imports)]
-            use reqwest::multipart::Part;
+            #pub_part
 
             /// Types used as operation parameters and responses.
             #[allow(clippy::all)]
@@ -536,6 +543,12 @@ impl Generator {
             .map(|method| self.builder_impl(method))
             .collect::<Vec<_>>();
 
+        let form_parts = self.uses_form_parts.then(|| {
+            quote! {
+                to_form_string,
+                Part,
+            }
+        });
         let out = quote! {
             impl Client {
                 #(#builder_methods)*
@@ -548,14 +561,13 @@ impl Generator {
                 #[allow(unused_imports)]
                 use super::{
                     encode_path,
-                    to_form_string,
+                    #form_parts
                     ByteStream,
                     Error,
                     HeaderMap,
                     HeaderValue,
                     RequestBuilderExt,
                     ResponseValue,
-                    Part,
                 };
 
                 #(#builder_struct)*
@@ -634,9 +646,9 @@ impl Generator {
         self.uses_websockets
     }
 
-    /// Whether the generated client uses the `serde-json` library.
-    pub fn uses_serde_json(&self) -> bool {
-        self.uses_serde_json
+    /// Whether the generated client uses form parts.
+    pub fn uses_form_parts(&self) -> bool {
+        self.uses_form_parts
     }
 }
 

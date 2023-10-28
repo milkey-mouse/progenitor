@@ -1,11 +1,9 @@
 #[allow(unused_imports)]
-use progenitor_client::{encode_path, to_form_string, RequestBuilderExt};
+use progenitor_client::{encode_path, RequestBuilderExt};
 #[allow(unused_imports)]
 pub use progenitor_client::{ByteStream, Error, ResponseValue};
 #[allow(unused_imports)]
 use reqwest::header::{HeaderMap, HeaderValue};
-#[allow(unused_imports)]
-use reqwest::multipart::Part;
 /// Types used as operation parameters and responses.
 #[allow(clippy::all)]
 pub mod types {
@@ -139,8 +137,7 @@ pub mod builder {
     use super::types;
     #[allow(unused_imports)]
     use super::{
-        encode_path, to_form_string, ByteStream, Error, HeaderMap, HeaderValue, Part,
-        RequestBuilderExt, ResponseValue,
+        encode_path, ByteStream, Error, HeaderMap, HeaderValue, RequestBuilderExt, ResponseValue,
     };
     ///Builder for [`Client::key_get`]
     ///
