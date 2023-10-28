@@ -1,15 +1,128 @@
 #[allow(unused_imports)]
 use progenitor_client::{encode_path, to_form_string, RequestBuilderExt};
+#[allow(unused_imports)]
 pub use progenitor_client::{ByteStream, Error, ResponseValue};
 #[allow(unused_imports)]
 use reqwest::header::{HeaderMap, HeaderValue};
 #[allow(unused_imports)]
 use reqwest::multipart::Part;
+/// Types used as operation parameters and responses.
+#[allow(clippy::all)]
 pub mod types {
     use serde::{Deserialize, Serialize};
     #[allow(unused_imports)]
     use std::convert::TryFrom;
-    #[derive(Clone, Debug, Deserialize, JsonSchema, Serialize)]
+    /// Error types.
+    pub mod error {
+        /// Error from a TryFrom or FromStr implementation.
+        pub struct ConversionError(std::borrow::Cow<'static, str>);
+        impl std::error::Error for ConversionError {}
+        impl std::fmt::Display for ConversionError {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+                std::fmt::Display::fmt(&self.0, f)
+            }
+        }
+
+        impl std::fmt::Debug for ConversionError {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+                std::fmt::Debug::fmt(&self.0, f)
+            }
+        }
+
+        impl From<&'static str> for ConversionError {
+            fn from(value: &'static str) -> Self {
+                Self(value.into())
+            }
+        }
+
+        impl From<String> for ConversionError {
+            fn from(value: String) -> Self {
+                Self(value.into())
+            }
+        }
+    }
+
+    ///CreateImageEditBody
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "required": [
+    ///    "image",
+    ///    "prompt"
+    ///  ],
+    ///  "properties": {
+    ///    "n": {
+    ///      "description": "The number of images to generate. Must be between 1
+    /// and 10.",
+    ///      "default": 1,
+    ///      "examples": [
+    ///        1
+    ///      ],
+    ///      "type": [
+    ///        "integer",
+    ///        "null"
+    ///      ],
+    ///      "maximum": 10.0,
+    ///      "minimum": 1.0
+    ///    },
+    ///    "prompt": {
+    ///      "description": "A text description of the desired image(s). The
+    /// maximum length is 1000 characters.",
+    ///      "examples": [
+    ///        "A cute baby sea otter wearing a beret"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "response_format": {
+    ///      "description": "The format in which the generated images are
+    /// returned. Must be one of `url` or `b64_json`.",
+    ///      "default": "url",
+    ///      "examples": [
+    ///        "url"
+    ///      ],
+    ///      "type": [
+    ///        "string",
+    ///        "null"
+    ///      ],
+    ///      "enum": [
+    ///        "url",
+    ///        "b64_json"
+    ///      ]
+    ///    },
+    ///    "size": {
+    ///      "description": "The size of the generated images. Must be one of
+    /// `256x256`, `512x512`, or `1024x1024`.",
+    ///      "default": "1024x1024",
+    ///      "examples": [
+    ///        "1024x1024"
+    ///      ],
+    ///      "type": [
+    ///        "string",
+    ///        "null"
+    ///      ],
+    ///      "enum": [
+    ///        "256x256",
+    ///        "512x512",
+    ///        "1024x1024"
+    ///      ]
+    ///    },
+    ///    "user": {
+    ///      "description": "A unique identifier representing your end-user,
+    /// which can help OpenAI to monitor and detect abuse. [Learn
+    /// more](/docs/guides/safety-best-practices/end-user-ids).\n",
+    ///      "examples": [
+    ///        "user-1234"
+    ///      ],
+    ///      "type": "string"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(Clone, Debug, Deserialize, Serialize)]
     pub struct CreateImageEditBody {
         ///The number of images to generate. Must be between 1 and 10.
         #[serde(default = "defaults::create_image_edit_body_n")]
@@ -40,15 +153,32 @@ pub mod types {
 
     impl CreateImageEditBody {
         pub fn builder() -> builder::CreateImageEditBody {
-            builder::CreateImageEditBody::default()
+            Default::default()
         }
     }
 
     ///The format in which the generated images are returned. Must be one of
     /// `url` or `b64_json`.
-    #[derive(
-        Clone, Copy, Debug, Deserialize, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd, Serialize,
-    )]
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "The format in which the generated images are returned.
+    /// Must be one of `url` or `b64_json`.",
+    ///  "default": "url",
+    ///  "examples": [
+    ///    "url"
+    ///  ],
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "url",
+    ///    "b64_json"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
     pub enum CreateImageEditBodyResponseFormat {
         #[serde(rename = "url")]
         Url,
@@ -72,42 +202,60 @@ pub mod types {
     }
 
     impl std::str::FromStr for CreateImageEditBodyResponseFormat {
-        type Err = &'static str;
-        fn from_str(value: &str) -> Result<Self, &'static str> {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> Result<Self, self::error::ConversionError> {
             match value {
                 "url" => Ok(Self::Url),
                 "b64_json" => Ok(Self::B64Json),
-                _ => Err("invalid value"),
+                _ => Err("invalid value".into()),
             }
         }
     }
 
     impl std::convert::TryFrom<&str> for CreateImageEditBodyResponseFormat {
-        type Error = &'static str;
-        fn try_from(value: &str) -> Result<Self, &'static str> {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> Result<Self, self::error::ConversionError> {
             value.parse()
         }
     }
 
     impl std::convert::TryFrom<&String> for CreateImageEditBodyResponseFormat {
-        type Error = &'static str;
-        fn try_from(value: &String) -> Result<Self, &'static str> {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &String) -> Result<Self, self::error::ConversionError> {
             value.parse()
         }
     }
 
     impl std::convert::TryFrom<String> for CreateImageEditBodyResponseFormat {
-        type Error = &'static str;
-        fn try_from(value: String) -> Result<Self, &'static str> {
+        type Error = self::error::ConversionError;
+        fn try_from(value: String) -> Result<Self, self::error::ConversionError> {
             value.parse()
         }
     }
 
     ///The size of the generated images. Must be one of `256x256`, `512x512`,
     /// or `1024x1024`.
-    #[derive(
-        Clone, Copy, Debug, Deserialize, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd, Serialize,
-    )]
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "The size of the generated images. Must be one of
+    /// `256x256`, `512x512`, or `1024x1024`.",
+    ///  "default": "1024x1024",
+    ///  "examples": [
+    ///    "1024x1024"
+    ///  ],
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "256x256",
+    ///    "512x512",
+    ///    "1024x1024"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
     pub enum CreateImageEditBodySize {
         #[serde(rename = "256x256")]
         _256x256,
@@ -134,39 +282,134 @@ pub mod types {
     }
 
     impl std::str::FromStr for CreateImageEditBodySize {
-        type Err = &'static str;
-        fn from_str(value: &str) -> Result<Self, &'static str> {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> Result<Self, self::error::ConversionError> {
             match value {
                 "256x256" => Ok(Self::_256x256),
                 "512x512" => Ok(Self::_512x512),
                 "1024x1024" => Ok(Self::_1024x1024),
-                _ => Err("invalid value"),
+                _ => Err("invalid value".into()),
             }
         }
     }
 
     impl std::convert::TryFrom<&str> for CreateImageEditBodySize {
-        type Error = &'static str;
-        fn try_from(value: &str) -> Result<Self, &'static str> {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> Result<Self, self::error::ConversionError> {
             value.parse()
         }
     }
 
     impl std::convert::TryFrom<&String> for CreateImageEditBodySize {
-        type Error = &'static str;
-        fn try_from(value: &String) -> Result<Self, &'static str> {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &String) -> Result<Self, self::error::ConversionError> {
             value.parse()
         }
     }
 
     impl std::convert::TryFrom<String> for CreateImageEditBodySize {
-        type Error = &'static str;
-        fn try_from(value: String) -> Result<Self, &'static str> {
+        type Error = self::error::ConversionError;
+        fn try_from(value: String) -> Result<Self, self::error::ConversionError> {
             value.parse()
         }
     }
 
-    #[derive(Clone, Debug, Deserialize, JsonSchema, Serialize)]
+    ///CreateImageEditRequest
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "required": [
+    ///    "image",
+    ///    "prompt"
+    ///  ],
+    ///  "properties": {
+    ///    "image": {
+    ///      "description": "The image to edit. Must be a valid PNG file, less
+    /// than 4MB, and square. If mask is not provided, image must have
+    /// transparency, which will be used as the mask.",
+    ///      "type": "string",
+    ///      "format": "binary"
+    ///    },
+    ///    "mask": {
+    ///      "description": "An additional image whose fully transparent areas
+    /// (e.g. where alpha is zero) indicate where `image` should be edited. Must
+    /// be a valid PNG file, less than 4MB, and have the same dimensions as
+    /// `image`.",
+    ///      "type": "string",
+    ///      "format": "binary"
+    ///    },
+    ///    "n": {
+    ///      "description": "The number of images to generate. Must be between 1
+    /// and 10.",
+    ///      "default": 1,
+    ///      "examples": [
+    ///        1
+    ///      ],
+    ///      "type": [
+    ///        "integer",
+    ///        "null"
+    ///      ],
+    ///      "maximum": 10.0,
+    ///      "minimum": 1.0
+    ///    },
+    ///    "prompt": {
+    ///      "description": "A text description of the desired image(s). The
+    /// maximum length is 1000 characters.",
+    ///      "examples": [
+    ///        "A cute baby sea otter wearing a beret"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "response_format": {
+    ///      "description": "The format in which the generated images are
+    /// returned. Must be one of `url` or `b64_json`.",
+    ///      "default": "url",
+    ///      "examples": [
+    ///        "url"
+    ///      ],
+    ///      "type": [
+    ///        "string",
+    ///        "null"
+    ///      ],
+    ///      "enum": [
+    ///        "url",
+    ///        "b64_json"
+    ///      ]
+    ///    },
+    ///    "size": {
+    ///      "description": "The size of the generated images. Must be one of
+    /// `256x256`, `512x512`, or `1024x1024`.",
+    ///      "default": "1024x1024",
+    ///      "examples": [
+    ///        "1024x1024"
+    ///      ],
+    ///      "type": [
+    ///        "string",
+    ///        "null"
+    ///      ],
+    ///      "enum": [
+    ///        "256x256",
+    ///        "512x512",
+    ///        "1024x1024"
+    ///      ]
+    ///    },
+    ///    "user": {
+    ///      "description": "A unique identifier representing your end-user,
+    /// which can help OpenAI to monitor and detect abuse. [Learn
+    /// more](/docs/guides/safety-best-practices/end-user-ids).\n",
+    ///      "examples": [
+    ///        "user-1234"
+    ///      ],
+    ///      "type": "string"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(Clone, Debug, Deserialize, Serialize)]
     pub struct CreateImageEditRequest {
         ///The image to edit. Must be a valid PNG file, less than 4MB, and
         /// square. If mask is not provided, image must have transparency, which
@@ -206,15 +449,32 @@ pub mod types {
 
     impl CreateImageEditRequest {
         pub fn builder() -> builder::CreateImageEditRequest {
-            builder::CreateImageEditRequest::default()
+            Default::default()
         }
     }
 
     ///The format in which the generated images are returned. Must be one of
     /// `url` or `b64_json`.
-    #[derive(
-        Clone, Copy, Debug, Deserialize, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd, Serialize,
-    )]
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "The format in which the generated images are returned.
+    /// Must be one of `url` or `b64_json`.",
+    ///  "default": "url",
+    ///  "examples": [
+    ///    "url"
+    ///  ],
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "url",
+    ///    "b64_json"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
     pub enum CreateImageEditRequestResponseFormat {
         #[serde(rename = "url")]
         Url,
@@ -238,42 +498,60 @@ pub mod types {
     }
 
     impl std::str::FromStr for CreateImageEditRequestResponseFormat {
-        type Err = &'static str;
-        fn from_str(value: &str) -> Result<Self, &'static str> {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> Result<Self, self::error::ConversionError> {
             match value {
                 "url" => Ok(Self::Url),
                 "b64_json" => Ok(Self::B64Json),
-                _ => Err("invalid value"),
+                _ => Err("invalid value".into()),
             }
         }
     }
 
     impl std::convert::TryFrom<&str> for CreateImageEditRequestResponseFormat {
-        type Error = &'static str;
-        fn try_from(value: &str) -> Result<Self, &'static str> {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> Result<Self, self::error::ConversionError> {
             value.parse()
         }
     }
 
     impl std::convert::TryFrom<&String> for CreateImageEditRequestResponseFormat {
-        type Error = &'static str;
-        fn try_from(value: &String) -> Result<Self, &'static str> {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &String) -> Result<Self, self::error::ConversionError> {
             value.parse()
         }
     }
 
     impl std::convert::TryFrom<String> for CreateImageEditRequestResponseFormat {
-        type Error = &'static str;
-        fn try_from(value: String) -> Result<Self, &'static str> {
+        type Error = self::error::ConversionError;
+        fn try_from(value: String) -> Result<Self, self::error::ConversionError> {
             value.parse()
         }
     }
 
     ///The size of the generated images. Must be one of `256x256`, `512x512`,
     /// or `1024x1024`.
-    #[derive(
-        Clone, Copy, Debug, Deserialize, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd, Serialize,
-    )]
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "The size of the generated images. Must be one of
+    /// `256x256`, `512x512`, or `1024x1024`.",
+    ///  "default": "1024x1024",
+    ///  "examples": [
+    ///    "1024x1024"
+    ///  ],
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "256x256",
+    ///    "512x512",
+    ///    "1024x1024"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
     pub enum CreateImageEditRequestSize {
         #[serde(rename = "256x256")]
         _256x256,
@@ -300,39 +578,118 @@ pub mod types {
     }
 
     impl std::str::FromStr for CreateImageEditRequestSize {
-        type Err = &'static str;
-        fn from_str(value: &str) -> Result<Self, &'static str> {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> Result<Self, self::error::ConversionError> {
             match value {
                 "256x256" => Ok(Self::_256x256),
                 "512x512" => Ok(Self::_512x512),
                 "1024x1024" => Ok(Self::_1024x1024),
-                _ => Err("invalid value"),
+                _ => Err("invalid value".into()),
             }
         }
     }
 
     impl std::convert::TryFrom<&str> for CreateImageEditRequestSize {
-        type Error = &'static str;
-        fn try_from(value: &str) -> Result<Self, &'static str> {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> Result<Self, self::error::ConversionError> {
             value.parse()
         }
     }
 
     impl std::convert::TryFrom<&String> for CreateImageEditRequestSize {
-        type Error = &'static str;
-        fn try_from(value: &String) -> Result<Self, &'static str> {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &String) -> Result<Self, self::error::ConversionError> {
             value.parse()
         }
     }
 
     impl std::convert::TryFrom<String> for CreateImageEditRequestSize {
-        type Error = &'static str;
-        fn try_from(value: String) -> Result<Self, &'static str> {
+        type Error = self::error::ConversionError;
+        fn try_from(value: String) -> Result<Self, self::error::ConversionError> {
             value.parse()
         }
     }
 
-    #[derive(Clone, Debug, Deserialize, JsonSchema, Serialize)]
+    ///CreateImageRequest
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "required": [
+    ///    "prompt"
+    ///  ],
+    ///  "properties": {
+    ///    "n": {
+    ///      "description": "The number of images to generate. Must be between 1
+    /// and 10.",
+    ///      "default": 1,
+    ///      "examples": [
+    ///        1
+    ///      ],
+    ///      "type": [
+    ///        "integer",
+    ///        "null"
+    ///      ],
+    ///      "maximum": 10.0,
+    ///      "minimum": 1.0
+    ///    },
+    ///    "prompt": {
+    ///      "description": "A text description of the desired image(s). The
+    /// maximum length is 1000 characters.",
+    ///      "examples": [
+    ///        "A cute baby sea otter"
+    ///      ],
+    ///      "type": "string"
+    ///    },
+    ///    "response_format": {
+    ///      "description": "The format in which the generated images are
+    /// returned. Must be one of `url` or `b64_json`.",
+    ///      "default": "url",
+    ///      "examples": [
+    ///        "url"
+    ///      ],
+    ///      "type": [
+    ///        "string",
+    ///        "null"
+    ///      ],
+    ///      "enum": [
+    ///        "url",
+    ///        "b64_json"
+    ///      ]
+    ///    },
+    ///    "size": {
+    ///      "description": "The size of the generated images. Must be one of
+    /// `256x256`, `512x512`, or `1024x1024`.",
+    ///      "default": "1024x1024",
+    ///      "examples": [
+    ///        "1024x1024"
+    ///      ],
+    ///      "type": [
+    ///        "string",
+    ///        "null"
+    ///      ],
+    ///      "enum": [
+    ///        "256x256",
+    ///        "512x512",
+    ///        "1024x1024"
+    ///      ]
+    ///    },
+    ///    "user": {
+    ///      "description": "A unique identifier representing your end-user,
+    /// which can help OpenAI to monitor and detect abuse. [Learn
+    /// more](/docs/guides/safety-best-practices/end-user-ids).\n",
+    ///      "examples": [
+    ///        "user-1234"
+    ///      ],
+    ///      "type": "string"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(Clone, Debug, Deserialize, Serialize)]
     pub struct CreateImageRequest {
         ///The number of images to generate. Must be between 1 and 10.
         #[serde(default = "defaults::create_image_request_n")]
@@ -363,15 +720,32 @@ pub mod types {
 
     impl CreateImageRequest {
         pub fn builder() -> builder::CreateImageRequest {
-            builder::CreateImageRequest::default()
+            Default::default()
         }
     }
 
     ///The format in which the generated images are returned. Must be one of
     /// `url` or `b64_json`.
-    #[derive(
-        Clone, Copy, Debug, Deserialize, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd, Serialize,
-    )]
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "The format in which the generated images are returned.
+    /// Must be one of `url` or `b64_json`.",
+    ///  "default": "url",
+    ///  "examples": [
+    ///    "url"
+    ///  ],
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "url",
+    ///    "b64_json"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
     pub enum CreateImageRequestResponseFormat {
         #[serde(rename = "url")]
         Url,
@@ -395,42 +769,60 @@ pub mod types {
     }
 
     impl std::str::FromStr for CreateImageRequestResponseFormat {
-        type Err = &'static str;
-        fn from_str(value: &str) -> Result<Self, &'static str> {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> Result<Self, self::error::ConversionError> {
             match value {
                 "url" => Ok(Self::Url),
                 "b64_json" => Ok(Self::B64Json),
-                _ => Err("invalid value"),
+                _ => Err("invalid value".into()),
             }
         }
     }
 
     impl std::convert::TryFrom<&str> for CreateImageRequestResponseFormat {
-        type Error = &'static str;
-        fn try_from(value: &str) -> Result<Self, &'static str> {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> Result<Self, self::error::ConversionError> {
             value.parse()
         }
     }
 
     impl std::convert::TryFrom<&String> for CreateImageRequestResponseFormat {
-        type Error = &'static str;
-        fn try_from(value: &String) -> Result<Self, &'static str> {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &String) -> Result<Self, self::error::ConversionError> {
             value.parse()
         }
     }
 
     impl std::convert::TryFrom<String> for CreateImageRequestResponseFormat {
-        type Error = &'static str;
-        fn try_from(value: String) -> Result<Self, &'static str> {
+        type Error = self::error::ConversionError;
+        fn try_from(value: String) -> Result<Self, self::error::ConversionError> {
             value.parse()
         }
     }
 
     ///The size of the generated images. Must be one of `256x256`, `512x512`,
     /// or `1024x1024`.
-    #[derive(
-        Clone, Copy, Debug, Deserialize, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd, Serialize,
-    )]
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "The size of the generated images. Must be one of
+    /// `256x256`, `512x512`, or `1024x1024`.",
+    ///  "default": "1024x1024",
+    ///  "examples": [
+    ///    "1024x1024"
+    ///  ],
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "256x256",
+    ///    "512x512",
+    ///    "1024x1024"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
     pub enum CreateImageRequestSize {
         #[serde(rename = "256x256")]
         _256x256,
@@ -457,39 +849,110 @@ pub mod types {
     }
 
     impl std::str::FromStr for CreateImageRequestSize {
-        type Err = &'static str;
-        fn from_str(value: &str) -> Result<Self, &'static str> {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> Result<Self, self::error::ConversionError> {
             match value {
                 "256x256" => Ok(Self::_256x256),
                 "512x512" => Ok(Self::_512x512),
                 "1024x1024" => Ok(Self::_1024x1024),
-                _ => Err("invalid value"),
+                _ => Err("invalid value".into()),
             }
         }
     }
 
     impl std::convert::TryFrom<&str> for CreateImageRequestSize {
-        type Error = &'static str;
-        fn try_from(value: &str) -> Result<Self, &'static str> {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> Result<Self, self::error::ConversionError> {
             value.parse()
         }
     }
 
     impl std::convert::TryFrom<&String> for CreateImageRequestSize {
-        type Error = &'static str;
-        fn try_from(value: &String) -> Result<Self, &'static str> {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &String) -> Result<Self, self::error::ConversionError> {
             value.parse()
         }
     }
 
     impl std::convert::TryFrom<String> for CreateImageRequestSize {
-        type Error = &'static str;
-        fn try_from(value: String) -> Result<Self, &'static str> {
+        type Error = self::error::ConversionError;
+        fn try_from(value: String) -> Result<Self, self::error::ConversionError> {
             value.parse()
         }
     }
 
-    #[derive(Clone, Debug, Deserialize, JsonSchema, Serialize)]
+    ///CreateImageVariationBody
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "required": [
+    ///    "image"
+    ///  ],
+    ///  "properties": {
+    ///    "n": {
+    ///      "description": "The number of images to generate. Must be between 1
+    /// and 10.",
+    ///      "default": 1,
+    ///      "examples": [
+    ///        1
+    ///      ],
+    ///      "type": [
+    ///        "integer",
+    ///        "null"
+    ///      ],
+    ///      "maximum": 10.0,
+    ///      "minimum": 1.0
+    ///    },
+    ///    "response_format": {
+    ///      "description": "The format in which the generated images are
+    /// returned. Must be one of `url` or `b64_json`.",
+    ///      "default": "url",
+    ///      "examples": [
+    ///        "url"
+    ///      ],
+    ///      "type": [
+    ///        "string",
+    ///        "null"
+    ///      ],
+    ///      "enum": [
+    ///        "url",
+    ///        "b64_json"
+    ///      ]
+    ///    },
+    ///    "size": {
+    ///      "description": "The size of the generated images. Must be one of
+    /// `256x256`, `512x512`, or `1024x1024`.",
+    ///      "default": "1024x1024",
+    ///      "examples": [
+    ///        "1024x1024"
+    ///      ],
+    ///      "type": [
+    ///        "string",
+    ///        "null"
+    ///      ],
+    ///      "enum": [
+    ///        "256x256",
+    ///        "512x512",
+    ///        "1024x1024"
+    ///      ]
+    ///    },
+    ///    "user": {
+    ///      "description": "A unique identifier representing your end-user,
+    /// which can help OpenAI to monitor and detect abuse. [Learn
+    /// more](/docs/guides/safety-best-practices/end-user-ids).\n",
+    ///      "examples": [
+    ///        "user-1234"
+    ///      ],
+    ///      "type": "string"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(Clone, Debug, Deserialize, Serialize)]
     pub struct CreateImageVariationBody {
         ///The number of images to generate. Must be between 1 and 10.
         #[serde(default = "defaults::create_image_variation_body_n")]
@@ -517,15 +980,32 @@ pub mod types {
 
     impl CreateImageVariationBody {
         pub fn builder() -> builder::CreateImageVariationBody {
-            builder::CreateImageVariationBody::default()
+            Default::default()
         }
     }
 
     ///The format in which the generated images are returned. Must be one of
     /// `url` or `b64_json`.
-    #[derive(
-        Clone, Copy, Debug, Deserialize, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd, Serialize,
-    )]
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "The format in which the generated images are returned.
+    /// Must be one of `url` or `b64_json`.",
+    ///  "default": "url",
+    ///  "examples": [
+    ///    "url"
+    ///  ],
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "url",
+    ///    "b64_json"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
     pub enum CreateImageVariationBodyResponseFormat {
         #[serde(rename = "url")]
         Url,
@@ -549,42 +1029,60 @@ pub mod types {
     }
 
     impl std::str::FromStr for CreateImageVariationBodyResponseFormat {
-        type Err = &'static str;
-        fn from_str(value: &str) -> Result<Self, &'static str> {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> Result<Self, self::error::ConversionError> {
             match value {
                 "url" => Ok(Self::Url),
                 "b64_json" => Ok(Self::B64Json),
-                _ => Err("invalid value"),
+                _ => Err("invalid value".into()),
             }
         }
     }
 
     impl std::convert::TryFrom<&str> for CreateImageVariationBodyResponseFormat {
-        type Error = &'static str;
-        fn try_from(value: &str) -> Result<Self, &'static str> {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> Result<Self, self::error::ConversionError> {
             value.parse()
         }
     }
 
     impl std::convert::TryFrom<&String> for CreateImageVariationBodyResponseFormat {
-        type Error = &'static str;
-        fn try_from(value: &String) -> Result<Self, &'static str> {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &String) -> Result<Self, self::error::ConversionError> {
             value.parse()
         }
     }
 
     impl std::convert::TryFrom<String> for CreateImageVariationBodyResponseFormat {
-        type Error = &'static str;
-        fn try_from(value: String) -> Result<Self, &'static str> {
+        type Error = self::error::ConversionError;
+        fn try_from(value: String) -> Result<Self, self::error::ConversionError> {
             value.parse()
         }
     }
 
     ///The size of the generated images. Must be one of `256x256`, `512x512`,
     /// or `1024x1024`.
-    #[derive(
-        Clone, Copy, Debug, Deserialize, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd, Serialize,
-    )]
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "The size of the generated images. Must be one of
+    /// `256x256`, `512x512`, or `1024x1024`.",
+    ///  "default": "1024x1024",
+    ///  "examples": [
+    ///    "1024x1024"
+    ///  ],
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "256x256",
+    ///    "512x512",
+    ///    "1024x1024"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
     pub enum CreateImageVariationBodySize {
         #[serde(rename = "256x256")]
         _256x256,
@@ -611,39 +1109,116 @@ pub mod types {
     }
 
     impl std::str::FromStr for CreateImageVariationBodySize {
-        type Err = &'static str;
-        fn from_str(value: &str) -> Result<Self, &'static str> {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> Result<Self, self::error::ConversionError> {
             match value {
                 "256x256" => Ok(Self::_256x256),
                 "512x512" => Ok(Self::_512x512),
                 "1024x1024" => Ok(Self::_1024x1024),
-                _ => Err("invalid value"),
+                _ => Err("invalid value".into()),
             }
         }
     }
 
     impl std::convert::TryFrom<&str> for CreateImageVariationBodySize {
-        type Error = &'static str;
-        fn try_from(value: &str) -> Result<Self, &'static str> {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> Result<Self, self::error::ConversionError> {
             value.parse()
         }
     }
 
     impl std::convert::TryFrom<&String> for CreateImageVariationBodySize {
-        type Error = &'static str;
-        fn try_from(value: &String) -> Result<Self, &'static str> {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &String) -> Result<Self, self::error::ConversionError> {
             value.parse()
         }
     }
 
     impl std::convert::TryFrom<String> for CreateImageVariationBodySize {
-        type Error = &'static str;
-        fn try_from(value: String) -> Result<Self, &'static str> {
+        type Error = self::error::ConversionError;
+        fn try_from(value: String) -> Result<Self, self::error::ConversionError> {
             value.parse()
         }
     }
 
-    #[derive(Clone, Debug, Deserialize, JsonSchema, Serialize)]
+    ///CreateImageVariationRequest
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "required": [
+    ///    "image"
+    ///  ],
+    ///  "properties": {
+    ///    "image": {
+    ///      "description": "The image to use as the basis for the variation(s).
+    /// Must be a valid PNG file, less than 4MB, and square.",
+    ///      "type": "string",
+    ///      "format": "binary"
+    ///    },
+    ///    "n": {
+    ///      "description": "The number of images to generate. Must be between 1
+    /// and 10.",
+    ///      "default": 1,
+    ///      "examples": [
+    ///        1
+    ///      ],
+    ///      "type": [
+    ///        "integer",
+    ///        "null"
+    ///      ],
+    ///      "maximum": 10.0,
+    ///      "minimum": 1.0
+    ///    },
+    ///    "response_format": {
+    ///      "description": "The format in which the generated images are
+    /// returned. Must be one of `url` or `b64_json`.",
+    ///      "default": "url",
+    ///      "examples": [
+    ///        "url"
+    ///      ],
+    ///      "type": [
+    ///        "string",
+    ///        "null"
+    ///      ],
+    ///      "enum": [
+    ///        "url",
+    ///        "b64_json"
+    ///      ]
+    ///    },
+    ///    "size": {
+    ///      "description": "The size of the generated images. Must be one of
+    /// `256x256`, `512x512`, or `1024x1024`.",
+    ///      "default": "1024x1024",
+    ///      "examples": [
+    ///        "1024x1024"
+    ///      ],
+    ///      "type": [
+    ///        "string",
+    ///        "null"
+    ///      ],
+    ///      "enum": [
+    ///        "256x256",
+    ///        "512x512",
+    ///        "1024x1024"
+    ///      ]
+    ///    },
+    ///    "user": {
+    ///      "description": "A unique identifier representing your end-user,
+    /// which can help OpenAI to monitor and detect abuse. [Learn
+    /// more](/docs/guides/safety-best-practices/end-user-ids).\n",
+    ///      "examples": [
+    ///        "user-1234"
+    ///      ],
+    ///      "type": "string"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(Clone, Debug, Deserialize, Serialize)]
     pub struct CreateImageVariationRequest {
         ///The image to use as the basis for the variation(s). Must be a valid
         /// PNG file, less than 4MB, and square.
@@ -674,15 +1249,32 @@ pub mod types {
 
     impl CreateImageVariationRequest {
         pub fn builder() -> builder::CreateImageVariationRequest {
-            builder::CreateImageVariationRequest::default()
+            Default::default()
         }
     }
 
     ///The format in which the generated images are returned. Must be one of
     /// `url` or `b64_json`.
-    #[derive(
-        Clone, Copy, Debug, Deserialize, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd, Serialize,
-    )]
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "The format in which the generated images are returned.
+    /// Must be one of `url` or `b64_json`.",
+    ///  "default": "url",
+    ///  "examples": [
+    ///    "url"
+    ///  ],
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "url",
+    ///    "b64_json"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
     pub enum CreateImageVariationRequestResponseFormat {
         #[serde(rename = "url")]
         Url,
@@ -708,42 +1300,60 @@ pub mod types {
     }
 
     impl std::str::FromStr for CreateImageVariationRequestResponseFormat {
-        type Err = &'static str;
-        fn from_str(value: &str) -> Result<Self, &'static str> {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> Result<Self, self::error::ConversionError> {
             match value {
                 "url" => Ok(Self::Url),
                 "b64_json" => Ok(Self::B64Json),
-                _ => Err("invalid value"),
+                _ => Err("invalid value".into()),
             }
         }
     }
 
     impl std::convert::TryFrom<&str> for CreateImageVariationRequestResponseFormat {
-        type Error = &'static str;
-        fn try_from(value: &str) -> Result<Self, &'static str> {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> Result<Self, self::error::ConversionError> {
             value.parse()
         }
     }
 
     impl std::convert::TryFrom<&String> for CreateImageVariationRequestResponseFormat {
-        type Error = &'static str;
-        fn try_from(value: &String) -> Result<Self, &'static str> {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &String) -> Result<Self, self::error::ConversionError> {
             value.parse()
         }
     }
 
     impl std::convert::TryFrom<String> for CreateImageVariationRequestResponseFormat {
-        type Error = &'static str;
-        fn try_from(value: String) -> Result<Self, &'static str> {
+        type Error = self::error::ConversionError;
+        fn try_from(value: String) -> Result<Self, self::error::ConversionError> {
             value.parse()
         }
     }
 
     ///The size of the generated images. Must be one of `256x256`, `512x512`,
     /// or `1024x1024`.
-    #[derive(
-        Clone, Copy, Debug, Deserialize, Eq, Hash, JsonSchema, Ord, PartialEq, PartialOrd, Serialize,
-    )]
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "The size of the generated images. Must be one of
+    /// `256x256`, `512x512`, or `1024x1024`.",
+    ///  "default": "1024x1024",
+    ///  "examples": [
+    ///    "1024x1024"
+    ///  ],
+    ///  "type": "string",
+    ///  "enum": [
+    ///    "256x256",
+    ///    "512x512",
+    ///    "1024x1024"
+    ///  ]
+    ///}
+    /// ```
+    /// </details>
+    #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
     pub enum CreateImageVariationRequestSize {
         #[serde(rename = "256x256")]
         _256x256,
@@ -770,39 +1380,75 @@ pub mod types {
     }
 
     impl std::str::FromStr for CreateImageVariationRequestSize {
-        type Err = &'static str;
-        fn from_str(value: &str) -> Result<Self, &'static str> {
+        type Err = self::error::ConversionError;
+        fn from_str(value: &str) -> Result<Self, self::error::ConversionError> {
             match value {
                 "256x256" => Ok(Self::_256x256),
                 "512x512" => Ok(Self::_512x512),
                 "1024x1024" => Ok(Self::_1024x1024),
-                _ => Err("invalid value"),
+                _ => Err("invalid value".into()),
             }
         }
     }
 
     impl std::convert::TryFrom<&str> for CreateImageVariationRequestSize {
-        type Error = &'static str;
-        fn try_from(value: &str) -> Result<Self, &'static str> {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &str) -> Result<Self, self::error::ConversionError> {
             value.parse()
         }
     }
 
     impl std::convert::TryFrom<&String> for CreateImageVariationRequestSize {
-        type Error = &'static str;
-        fn try_from(value: &String) -> Result<Self, &'static str> {
+        type Error = self::error::ConversionError;
+        fn try_from(value: &String) -> Result<Self, self::error::ConversionError> {
             value.parse()
         }
     }
 
     impl std::convert::TryFrom<String> for CreateImageVariationRequestSize {
-        type Error = &'static str;
-        fn try_from(value: String) -> Result<Self, &'static str> {
+        type Error = self::error::ConversionError;
+        fn try_from(value: String) -> Result<Self, self::error::ConversionError> {
             value.parse()
         }
     }
 
-    #[derive(Clone, Debug, Deserialize, JsonSchema, Serialize)]
+    ///Error
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "required": [
+    ///    "code",
+    ///    "message",
+    ///    "param",
+    ///    "type"
+    ///  ],
+    ///  "properties": {
+    ///    "code": {
+    ///      "type": [
+    ///        "string",
+    ///        "null"
+    ///      ]
+    ///    },
+    ///    "message": {
+    ///      "type": "string"
+    ///    },
+    ///    "param": {
+    ///      "type": [
+    ///        "string",
+    ///        "null"
+    ///      ]
+    ///    },
+    ///    "type": {
+    ///      "type": "string"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(Clone, Debug, Deserialize, Serialize)]
     pub struct Error {
         pub code: Option<String>,
         pub message: String,
@@ -819,11 +1465,29 @@ pub mod types {
 
     impl Error {
         pub fn builder() -> builder::Error {
-            builder::Error::default()
+            Default::default()
         }
     }
 
-    #[derive(Clone, Debug, Deserialize, JsonSchema, Serialize)]
+    ///ErrorResponse
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "type": "object",
+    ///  "required": [
+    ///    "error"
+    ///  ],
+    ///  "properties": {
+    ///    "error": {
+    ///      "$ref": "#/components/schemas/Error"
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(Clone, Debug, Deserialize, Serialize)]
     pub struct ErrorResponse {
         pub error: Error,
     }
@@ -836,13 +1500,40 @@ pub mod types {
 
     impl ErrorResponse {
         pub fn builder() -> builder::ErrorResponse {
-            builder::ErrorResponse::default()
+            Default::default()
         }
     }
 
     ///Represents the url or the content of an image generated by the OpenAI
     /// API.
-    #[derive(Clone, Debug, Deserialize, JsonSchema, Serialize)]
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "description": "Represents the url or the content of an image generated
+    /// by the OpenAI API.",
+    ///  "type": "object",
+    ///  "properties": {
+    ///    "b64_json": {
+    ///      "description": "The base64-encoded JSON of the generated image, if
+    /// `response_format` is `b64_json`.",
+    ///      "type": "string"
+    ///    },
+    ///    "url": {
+    ///      "description": "The URL of the generated image, if
+    /// `response_format` is `url` (default).",
+    ///      "type": "string"
+    ///    }
+    ///  },
+    ///  "x-oaiMeta": {
+    ///    "example": "{\n  \"url\": \"...\"\n}\n",
+    ///    "name": "The image object"
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(Clone, Debug, Deserialize, Serialize)]
     pub struct Image {
         ///The base64-encoded JSON of the generated image, if `response_format`
         /// is `b64_json`.
@@ -862,11 +1553,35 @@ pub mod types {
 
     impl Image {
         pub fn builder() -> builder::Image {
-            builder::Image::default()
+            Default::default()
         }
     }
 
-    #[derive(Clone, Debug, Deserialize, JsonSchema, Serialize)]
+    ///ImagesResponse
+    ///
+    /// <details><summary>JSON schema</summary>
+    ///
+    /// ```json
+    ///{
+    ///  "required": [
+    ///    "created",
+    ///    "data"
+    ///  ],
+    ///  "properties": {
+    ///    "created": {
+    ///      "type": "integer"
+    ///    },
+    ///    "data": {
+    ///      "type": "array",
+    ///      "items": {
+    ///        "$ref": "#/components/schemas/Image"
+    ///      }
+    ///    }
+    ///  }
+    ///}
+    /// ```
+    /// </details>
+    #[derive(Clone, Debug, Deserialize, Serialize)]
     pub struct ImagesResponse {
         pub created: i64,
         pub data: Vec<Image>,
@@ -880,10 +1595,11 @@ pub mod types {
 
     impl ImagesResponse {
         pub fn builder() -> builder::ImagesResponse {
-            builder::ImagesResponse::default()
+            Default::default()
         }
     }
 
+    /// Types for composing complex structures.
     pub mod builder {
         #[derive(Clone, Debug)]
         pub struct CreateImageEditBody {
@@ -960,8 +1676,8 @@ pub mod types {
         }
 
         impl std::convert::TryFrom<CreateImageEditBody> for super::CreateImageEditBody {
-            type Error = String;
-            fn try_from(value: CreateImageEditBody) -> Result<Self, String> {
+            type Error = super::error::ConversionError;
+            fn try_from(value: CreateImageEditBody) -> Result<Self, super::error::ConversionError> {
                 Ok(Self {
                     n: value.n?,
                     prompt: value.prompt?,
@@ -1085,8 +1801,10 @@ pub mod types {
         }
 
         impl std::convert::TryFrom<CreateImageEditRequest> for super::CreateImageEditRequest {
-            type Error = String;
-            fn try_from(value: CreateImageEditRequest) -> Result<Self, String> {
+            type Error = super::error::ConversionError;
+            fn try_from(
+                value: CreateImageEditRequest,
+            ) -> Result<Self, super::error::ConversionError> {
                 Ok(Self {
                     image: value.image?,
                     mask: value.mask?,
@@ -1188,8 +1906,8 @@ pub mod types {
         }
 
         impl std::convert::TryFrom<CreateImageRequest> for super::CreateImageRequest {
-            type Error = String;
-            fn try_from(value: CreateImageRequest) -> Result<Self, String> {
+            type Error = super::error::ConversionError;
+            fn try_from(value: CreateImageRequest) -> Result<Self, super::error::ConversionError> {
                 Ok(Self {
                     n: value.n?,
                     prompt: value.prompt?,
@@ -1277,8 +1995,10 @@ pub mod types {
         }
 
         impl std::convert::TryFrom<CreateImageVariationBody> for super::CreateImageVariationBody {
-            type Error = String;
-            fn try_from(value: CreateImageVariationBody) -> Result<Self, String> {
+            type Error = super::error::ConversionError;
+            fn try_from(
+                value: CreateImageVariationBody,
+            ) -> Result<Self, super::error::ConversionError> {
                 Ok(Self {
                     n: value.n?,
                     response_format: value.response_format?,
@@ -1377,8 +2097,10 @@ pub mod types {
         }
 
         impl std::convert::TryFrom<CreateImageVariationRequest> for super::CreateImageVariationRequest {
-            type Error = String;
-            fn try_from(value: CreateImageVariationRequest) -> Result<Self, String> {
+            type Error = super::error::ConversionError;
+            fn try_from(
+                value: CreateImageVariationRequest,
+            ) -> Result<Self, super::error::ConversionError> {
                 Ok(Self {
                     image: value.image?,
                     n: value.n?,
@@ -1464,8 +2186,8 @@ pub mod types {
         }
 
         impl std::convert::TryFrom<Error> for super::Error {
-            type Error = String;
-            fn try_from(value: Error) -> Result<Self, String> {
+            type Error = super::error::ConversionError;
+            fn try_from(value: Error) -> Result<Self, super::error::ConversionError> {
                 Ok(Self {
                     code: value.code?,
                     message: value.message?,
@@ -1513,8 +2235,8 @@ pub mod types {
         }
 
         impl std::convert::TryFrom<ErrorResponse> for super::ErrorResponse {
-            type Error = String;
-            fn try_from(value: ErrorResponse) -> Result<Self, String> {
+            type Error = super::error::ConversionError;
+            fn try_from(value: ErrorResponse) -> Result<Self, super::error::ConversionError> {
                 Ok(Self {
                     error: value.error?,
                 })
@@ -1568,8 +2290,8 @@ pub mod types {
         }
 
         impl std::convert::TryFrom<Image> for super::Image {
-            type Error = String;
-            fn try_from(value: Image) -> Result<Self, String> {
+            type Error = super::error::ConversionError;
+            fn try_from(value: Image) -> Result<Self, super::error::ConversionError> {
                 Ok(Self {
                     b64_json: value.b64_json?,
                     url: value.url?,
@@ -1625,8 +2347,8 @@ pub mod types {
         }
 
         impl std::convert::TryFrom<ImagesResponse> for super::ImagesResponse {
-            type Error = String;
-            fn try_from(value: ImagesResponse) -> Result<Self, String> {
+            type Error = super::error::ConversionError;
+            fn try_from(value: ImagesResponse) -> Result<Self, super::error::ConversionError> {
                 Ok(Self {
                     created: value.created?,
                     data: value.data?,
@@ -1644,6 +2366,7 @@ pub mod types {
         }
     }
 
+    /// Generation of default values for serde.
     pub mod defaults {
         pub(super) fn create_image_edit_body_n() -> Option<i64> {
             Some(1_i64)
@@ -1779,7 +2502,8 @@ impl Client {
     }
 }
 
-impl Client {
+///Given a prompt and/or an input image, the model will generate a new image.
+pub trait ClientImagesExt {
     ///Creates an image given a prompt
     ///
     ///Sends a `POST` request to `/images/generations`
@@ -1790,10 +2514,7 @@ impl Client {
     ///    .send()
     ///    .await;
     /// ```
-    pub fn create_image(&self) -> builder::CreateImage {
-        builder::CreateImage::new(self)
-    }
-
+    fn create_image(&self) -> builder::CreateImage;
     ///Creates an edited or extended image given an original image and a prompt
     ///
     ///Sends a `POST` request to `/images/edits`
@@ -1815,10 +2536,7 @@ impl Client {
     ///    .send()
     ///    .await;
     /// ```
-    pub fn create_image_edit(&self) -> builder::CreateImageEdit {
-        builder::CreateImageEdit::new(self)
-    }
-
+    fn create_image_edit(&self) -> builder::CreateImageEdit;
     ///Creates a variation of a given image
     ///
     ///Sends a `POST` request to `/images/variations`
@@ -1834,21 +2552,34 @@ impl Client {
     ///    .send()
     ///    .await;
     /// ```
-    pub fn create_image_variation(&self) -> builder::CreateImageVariation {
+    fn create_image_variation(&self) -> builder::CreateImageVariation;
+}
+
+impl ClientImagesExt for Client {
+    fn create_image(&self) -> builder::CreateImage {
+        builder::CreateImage::new(self)
+    }
+
+    fn create_image_edit(&self) -> builder::CreateImageEdit {
+        builder::CreateImageEdit::new(self)
+    }
+
+    fn create_image_variation(&self) -> builder::CreateImageVariation {
         builder::CreateImageVariation::new(self)
     }
 }
 
+/// Types for composing operation parameters.
+#[allow(clippy::all)]
 pub mod builder {
     use super::types;
     #[allow(unused_imports)]
     use super::{
-        encode_path, to_form_string, ByteStream, Error, HeaderMap, HeaderValue, Part,
-        RequestBuilderExt, ResponseValue,
+        encode_path, ByteStream, Error, HeaderMap, HeaderValue, RequestBuilderExt, ResponseValue,
     };
-    ///Builder for [`Client::create_image`]
+    ///Builder for [`ClientImagesExt::create_image`]
     ///
-    ///[`Client::create_image`]: super::Client::create_image
+    ///[`ClientImagesExt::create_image`]: super::ClientImagesExt::create_image
     #[derive(Debug, Clone)]
     pub struct CreateImage<'a> {
         client: &'a super::Client,
@@ -1866,11 +2597,12 @@ pub mod builder {
         pub fn body<V>(mut self, value: V) -> Self
         where
             V: std::convert::TryInto<types::CreateImageRequest>,
+            <V as std::convert::TryInto<types::CreateImageRequest>>::Error: std::fmt::Display,
         {
             self.body = value
                 .try_into()
                 .map(From::from)
-                .map_err(|_| "conversion to `CreateImageRequest` for body failed".to_string());
+                .map_err(|s| format!("conversion to `CreateImageRequest` for body failed: {}", s));
             self
         }
 
@@ -1888,10 +2620,11 @@ pub mod builder {
         pub async fn send(self) -> Result<ResponseValue<types::ImagesResponse>, Error<()>> {
             let Self { client, body } = self;
             let body = body
-                .and_then(std::convert::TryInto::<types::CreateImageRequest>::try_into)
+                .and_then(|v| types::CreateImageRequest::try_from(v).map_err(|e| e.to_string()))
                 .map_err(Error::InvalidRequest)?;
             let url = format!("{}/images/generations", client.baseurl,);
-            let request = client
+            #[allow(unused_mut)]
+            let mut request = client
                 .client
                 .post(url)
                 .header(
@@ -1909,9 +2642,9 @@ pub mod builder {
         }
     }
 
-    ///Builder for [`Client::create_image_edit`]
+    ///Builder for [`ClientImagesExt::create_image_edit`]
     ///
-    ///[`Client::create_image_edit`]: super::Client::create_image_edit
+    ///[`ClientImagesExt::create_image_edit`]: super::ClientImagesExt::create_image_edit
     #[derive(Debug)]
     pub struct CreateImageEdit<'a> {
         client: &'a super::Client,
@@ -1933,11 +2666,12 @@ pub mod builder {
         pub fn body<V>(mut self, value: V) -> Self
         where
             V: std::convert::TryInto<types::CreateImageEditBody>,
+            <V as std::convert::TryInto<types::CreateImageEditBody>>::Error: std::fmt::Display,
         {
             self.body = value
                 .try_into()
                 .map(From::from)
-                .map_err(|_| "conversion to `CreateImageEditBody` for body failed".to_string());
+                .map_err(|s| format!("conversion to `CreateImageEditBody` for body failed: {}", s));
             self
         }
 
@@ -1970,7 +2704,7 @@ pub mod builder {
                 image,
             } = self;
             let body = body
-                .and_then(std::convert::TryInto::<types::CreateImageEditBody>::try_into)
+                .and_then(|v| types::CreateImageEditBody::try_from(v).map_err(|e| e.to_string()))
                 .map_err(Error::InvalidRequest)?;
             let mask = mask.map_err(Error::InvalidRequest)?;
             let image = image.map_err(Error::InvalidRequest)?;
@@ -2004,7 +2738,8 @@ pub mod builder {
                 let v = to_form_string(v)?;
                 form = form.text("user", v);
             };
-            let request = client
+            #[allow(unused_mut)]
+            let mut request = client
                 .client
                 .post(url)
                 .header(
@@ -2022,9 +2757,9 @@ pub mod builder {
         }
     }
 
-    ///Builder for [`Client::create_image_variation`]
+    ///Builder for [`ClientImagesExt::create_image_variation`]
     ///
-    ///[`Client::create_image_variation`]: super::Client::create_image_variation
+    ///[`ClientImagesExt::create_image_variation`]: super::ClientImagesExt::create_image_variation
     #[derive(Debug)]
     pub struct CreateImageVariation<'a> {
         client: &'a super::Client,
@@ -2044,9 +2779,13 @@ pub mod builder {
         pub fn body<V>(mut self, value: V) -> Self
         where
             V: std::convert::TryInto<types::CreateImageVariationBody>,
+            <V as std::convert::TryInto<types::CreateImageVariationBody>>::Error: std::fmt::Display,
         {
-            self.body = value.try_into().map(From::from).map_err(|_| {
-                "conversion to `CreateImageVariationBody` for body failed".to_string()
+            self.body = value.try_into().map(From::from).map_err(|s| {
+                format!(
+                    "conversion to `CreateImageVariationBody` for body failed: {}",
+                    s
+                )
             });
             self
         }
@@ -2074,7 +2813,9 @@ pub mod builder {
                 image,
             } = self;
             let body = body
-                .and_then(std::convert::TryInto::<types::CreateImageVariationBody>::try_into)
+                .and_then(|v| {
+                    types::CreateImageVariationBody::try_from(v).map_err(|e| e.to_string())
+                })
                 .map_err(Error::InvalidRequest)?;
             let image = image.map_err(Error::InvalidRequest)?;
             let url = format!("{}/images/variations", client.baseurl,);
@@ -2100,7 +2841,8 @@ pub mod builder {
                 let v = to_form_string(v)?;
                 form = form.text("user", v);
             };
-            let request = client
+            #[allow(unused_mut)]
+            let mut request = client
                 .client
                 .post(url)
                 .header(
@@ -2119,6 +2861,10 @@ pub mod builder {
     }
 }
 
+/// Items consumers will typically use such as the Client and
+/// extension traits.
 pub mod prelude {
-    pub use self::super::Client;
+    #[allow(unused_imports)]
+    pub use super::Client;
+    pub use super::ClientImagesExt;
 }

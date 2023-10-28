@@ -400,7 +400,7 @@ impl Generator {
             #[allow(unused_imports)]
             pub use progenitor_client::{ByteStream, Error, ResponseValue};
             #[allow(unused_imports)]
-            use progenitor_client::{encode_path, RequestBuilderExt};
+            use progenitor_client::{encode_path, to_form_string, RequestBuilderExt};
             #[allow(unused_imports)]
             use reqwest::header::{HeaderMap, HeaderValue};
             #[allow(unused_imports)]
@@ -548,6 +548,7 @@ impl Generator {
                 #[allow(unused_imports)]
                 use super::{
                     encode_path,
+                    to_form_string,
                     ByteStream,
                     Error,
                     HeaderMap,
@@ -633,6 +634,7 @@ impl Generator {
         self.uses_websockets
     }
 
+    /// Whether the generated client uses the `serde-json` library.
     pub fn uses_serde_json(&self) -> bool {
         self.uses_serde_json
     }
