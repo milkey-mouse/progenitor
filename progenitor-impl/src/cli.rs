@@ -104,18 +104,20 @@ impl Generator {
 
         let request_file = methods.iter().any(|method|method.uses_request_file_part).then(|| {
             quote! {
-                fn request_file_part(path: &std::path::PathBuf) -> reqwest::multipart::Part {
+                fn request_file_part(
+                    &self,
+                    path: &std::path::PathBuf,
+                ) -> Result<reqwest::multipart::Part, String> {
                     use std::io::Read;
-                    let mut file = std::fs::File::open(&path).unwrap();
+                    let mut file = std::fs::File::open(&path).map_err(|e| e.to_string())?;
                     let mut value = Vec::new();
-                    file.read_to_end(&mut value).unwrap();
-                    // TODO: probably try setting mime type with mime_guess
+                    file.read_to_end(&mut value).map_err(|e| e.to_string())?;
                     let part = reqwest::multipart::Part::bytes(value);
-                    if let Some(file_name) = path.file_name() {
+                    Ok(if let Some(file_name) = path.file_name() {
                         part.file_name(file_name.to_string_lossy().into_owned())
                     } else {
                         part
-                    }
+                    })
                 }
             }
         });
@@ -127,8 +129,6 @@ impl Generator {
 
         let code = quote! {
             use #crate_path::*;
-
-            #request_file
 
             pub struct Cli<T: CliConfig> {
                 client: Client,
@@ -192,6 +192,7 @@ impl Generator {
                     T: schemars::JsonSchema + serde::Serialize + std::fmt::Debug;
 
                 #(#trait_ops)*
+                #request_file
             }
 
             #[derive(Copy, Clone, Debug)]
@@ -536,10 +537,10 @@ impl Generator {
                 let arg_name = param.api_name.to_kebab_case();
                 let request_field = format_ident!("{}", param.name);
                 let parser = quote! {
-                        clap::Arg::new(#arg_name)
-                            .required(#required)
-                            .value_parser(clap::value_parser!(std::path::PathBuf))
-                            #help
+                    clap::Arg::new(#arg_name)
+                        .required(#required)
+                        .value_parser(clap::value_parser!(std::path::PathBuf))
+                        #help
                 };
                 let part = if required {
                     quote! { part }
@@ -548,7 +549,7 @@ impl Generator {
                 };
                 let consumer = quote! {
                     if let Some(path) = matches.get_one::<std::path::PathBuf>(#arg_name) {
-                        let part = request_file_part(path);
+                        let part = self.over.request_file_part(path).unwrap();
                         request = request.#request_field(#part);
                     }
                 };
